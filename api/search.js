@@ -65,6 +65,21 @@ async function board(slug) {
   throw new Error("no public board found");
 }
 
+function detectAuth(raw){
+  var t = String(raw||"").replace(/\s+/g," ");
+  var citizen = /\bu\.?s\.? citizen(ship)?\b[^.;]{0,60}\b(required|only|must)\b|\bmust (be|hold)( a)? (u\.?s\.?|united states) citizen|\brequires? (u\.?s\.? |united states )?citizenship|\b(security|secret|top secret|ts\/sci) clearance|\bitar\b|\bu\.?s\.? persons?\b|\bexport[- ]control/i.test(t);
+  var noSponsor = /\b(not|unable|cannot|can't|won't|no)\b[^.;]{0,40}\bsponsor|without (the need for )?(any )?(current or future )?(visa |employment |immigration )?sponsorship|authorized to work in the (u\.?s\.?|united states) without/i.test(t);
+  var yesSponsor = !noSponsor && /\b(will|can|able to|happy to|we) (provide |offer |consider )?(visa |h-?1b )?sponsor(ship)?\b|\bsponsorship (is )?(available|provided|offered)|\bh-?1b (sponsorship|transfers?) (is |are )?(available|supported|offered)|\bopen to sponsor/i.test(t);
+  var future = /now or in the future|future (visa )?sponsorship|current or future|at any time in the future/i.test(t);
+  var stuYes = /\b(stem )?(opt|cpt)\b[^.;]{0,60}\b(welcome|eligible|accepted|considered|acceptable)\b|\b(f-?1|international students?)\b[^.;]{0,60}\b(welcome|encouraged|eligible|considered)\b/i.test(t);
+  var stuNo = /\b(opt|cpt)\b[^.;]{0,40}\b(not|ineligible)\b/i.test(t);
+  var ctry = "(china|chinese|prc|people's republic of china|iran|iranian|russia|russian|north korea|north korean|dprk)";
+  var ndaa = new RegExp("\\bndaa\\b|national defense authorization act|countr(y|ies) of concern|foreign adversar|covered nation|(citizens?|nationals?|passports?|passport holders?) (of|from) [^.;]{0,40}\\b"+ctry+"\\b|\\b"+ctry+"\\b[^.;]{0,30}\\b(citizens|nationals|passport holders|passports)\\b","i").test(t);
+  var h1b = (citizen || noSponsor) ? "no" : yesSponsor ? "yes" : "unknown";
+  var stu = citizen ? "no" : stuNo ? "no" : stuYes ? "yes" : (noSponsor && future) ? "no" : "unknown";
+  return { cpt: stu, opt: stu, h1b: h1b, citizen: citizen, ndaa: ndaa };
+}
+
 const SENIOR = /\b(senior|sr\.?|staff|principal|director|manager|head of|lead|vp|chief)\b/i;
 const JUNIOR = /\b(new grad|early career|entry|associate|university|graduate|intern|i\b|1\b)/i;
 
@@ -73,6 +88,9 @@ module.exports = async (req, res) => {
   const slugs = String(q.companies || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean).slice(0, 12);
   const kws = String(q.keywords || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
   const limit = Math.min(10, Math.max(1, parseInt(q.limit, 10) || 6));
+  // what the person needs (cpt, opt, h1b) and whether to drop jobs that rule them out
+  const needs = String(q.needs || "").split(",").map(s => s.trim().toLowerCase()).filter(n => ["cpt", "opt", "h1b"].includes(n));
+  const hide = q.hide === "1";
   if (!slugs.length) return res.status(400).json({ error: "Add at least one company" });
 
   const settled = await Promise.all(slugs.map(s => board(s).then(b => ({ slug: s, ...b }), e => ({ slug: s, error: e.message }))));
@@ -88,7 +106,11 @@ module.exports = async (req, res) => {
       if (SENIOR.test(j.role)) score -= 6;
       if (JUNIOR.test(j.role)) score += 2;
       if (/intern\b/i.test(j.role)) score -= 1; // full-time roles first; interns still allowed
-      if (kws.some(k => title.includes(k))) { matched++; if (score > 0) pool.push({ ...j, score }); }
+      if (!kws.some(k => title.includes(k))) continue;
+      matched++;
+      const auth = detectAuth(j.posting); // reads the FULL description, so clauses near the end aren't missed
+      if (hide && (auth.citizen || auth.ndaa || needs.some(n => auth[n] === "no"))) continue;
+      if (score > 0) pool.push({ ...j, score, auth });
     }
     boards.push({ company: b.company, ats: b.ats, total: b.jobs.length, us: us.length, matched });
   }
@@ -99,7 +121,7 @@ module.exports = async (req, res) => {
     if (picked.length >= limit) break;
     if ((perCo[j.company] || 0) >= 2) continue;
     perCo[j.company] = (perCo[j.company] || 0) + 1;
-    picked.push({ id: j.id, company: j.company, role: j.role, place: j.place, url: j.url, posting: j.posting.slice(0, 4000), source: "board" });
+    picked.push({ id: j.id, company: j.company, role: j.role, place: j.place, url: j.url, posting: j.posting.slice(0, 6000), auth: j.auth, source: "board" });
   }
   res.setHeader("Cache-Control", "s-maxage=600");
   return res.status(200).json({ boards, jobs: picked });
