@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Night Shift</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: two panes. Left = date + jobs found (with links). Right = the selected job: cover letter from its JD, people to contact, apply or not. */
+:root{
+  --bg:#f3f5f8; --card:#ffffff; --ink:#18202e; --mute:#5c6678; --line:#dce1e8; --soft:#f1f3f7;
+  --accent:#a8620c; --accent-soft:#fbf1e1; --ok:#2b8a56; --ok-soft:#e6f3eb; --skip:#8b93a4; --warn:#b4700f; --warn-soft:#fdf2df;
+  --btn:#18202e; --btn-ink:#ffffff;
+  --f-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11161f; --card:#19202c; --ink:#e4e8f0; --mute:#97a1b4; --line:#2b3444; --soft:#212938;
+  --accent:#f0b257; --accent-soft:#2d2618; --ok:#6fcf98; --ok-soft:#1c2e25; --skip:#7e8799; --warn:#f0b257; --warn-soft:#2f2616;
+  --btn:#e4e8f0; --btn-ink:#11161f; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#11161f; --card:#19202c; --ink:#e4e8f0; --mute:#97a1b4; --line:#2b3444; --soft:#212938;
+  --accent:#f0b257; --accent-soft:#2d2618; --ok:#6fcf98; --ok-soft:#1c2e25; --skip:#7e8799; --warn:#f0b257; --warn-soft:#2f2616;
+  --btn:#e4e8f0; --btn-ink:#11161f; color-scheme:dark }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;padding-block:18px 40px;display:flex;flex-direction:column;gap:16px}
+button{font:inherit;cursor:pointer;color:inherit}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono)}
+.label{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.muted{color:var(--mute)}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--f-display);font-weight:800;font-size:22px;letter-spacing:-.01em}
+.brand span{color:var(--accent)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:8px 16px;font-size:14px;font-weight:500;text-decoration:none;border:1px solid var(--line);background:var(--card)}
+.btn.primary{background:var(--btn);color:var(--btn-ink);border-color:var(--btn);font-weight:600}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff;font-weight:600}
+.btn.small{padding:5px 12px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.banner{font-size:13px;background:var(--accent-soft);border-radius:10px;padding:8px 12px}
+
+/* settings */
+.settings{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:820px){.settings{grid-template-columns:1fr}}
+.settings section{display:flex;flex-direction:column;gap:10px;min-width:0}
+.settings h3{margin:0;font-size:15px;font-weight:600}
+textarea,input[type=text],input[type=email],input[type=tel],input[type=url]{width:100%;background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:14px/1.45 var(--f-body)}
+textarea{resize:vertical;min-height:70px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.inline{display:flex;gap:6px}
+.inline input{flex:1;min-width:0}
+.contact{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+@media (max-width:560px){.contact{grid-template-columns:1fr}}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:6px;font:12px var(--f-mono);padding:3px 10px;border-radius:999px;background:var(--soft);border:1px solid var(--line)}
+.tag button{background:none;border:0;padding:0;color:var(--mute);line-height:1}
+.file{position:relative;overflow:hidden}
+.file input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.status{font-size:13px;color:var(--mute)}
+.status.ok{color:var(--ok)}.status.err{color:#c4483a}
+
+/* panes */
+.panes{display:grid;grid-template-columns:minmax(280px,380px) 1fr;gap:16px;align-items:start}
+@media (max-width:860px){.panes{grid-template-columns:1fr}}
+.list{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-width:0}
+.day{border-top:1px solid var(--line)}
+.day:first-child{border-top:0}
+.dayhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:14px 16px 8px}
+.dayhead b{font-family:var(--f-display);font-size:18px;font-weight:700;letter-spacing:-.01em}
+.job{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 16px;border-top:1px solid var(--soft);cursor:pointer}
+.job:hover{background:var(--soft)}
+.job.on{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.job .role{font-weight:600;font-size:14.5px;line-height:1.3}
+.job .meta{font-size:13px;color:var(--mute);grid-column:1}
+.job .lnk{font-size:12.5px;grid-column:1;color:var(--mute);text-decoration:underline;text-underline-offset:2px;justify-self:start}
+.pill{grid-column:2;grid-row:1/span 3;align-self:center;font:11.5px var(--f-mono);padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+.pill.applied{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
+.pill.skipped{color:var(--skip)}
+.empty{padding:22px 16px;font-size:14px;color:var(--mute)}
+
+.detail{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:20px;min-width:0}
+.detail h1{margin:0;font-family:var(--f-display);font-weight:800;font-size:clamp(22px,3vw,28px);line-height:1.15;letter-spacing:-.015em;text-wrap:balance}
+.sub{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:14px;color:var(--mute)}
+.fit{font-size:14px;background:var(--soft);border-radius:10px;padding:10px 12px}
+.fit b{font-family:var(--f-mono);font-weight:500}
+.decide{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:14px;border:1px solid var(--line);border-radius:12px}
+.decide .q{font-weight:600;margin-right:auto}
+.kit{border:1.5px solid var(--ok);background:var(--ok-soft);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.kit ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.bm{display:inline-flex;align-items:center;gap:6px;background:#f0b257;color:#1b1406;border-radius:999px;padding:7px 14px;font-weight:600;text-decoration:none;font-size:13.5px;cursor:grab}
+.warn{background:var(--warn-soft);border-radius:10px;padding:10px 12px;font-size:14px}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sechead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.cl{min-height:260px;font:15px/1.6 Georgia,"Times New Roman",serif;background:var(--soft)}
+.people{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:1000px){.people{grid-template-columns:1fr}}
+.person{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;font-size:14px;min-width:0}
+.person b{font-size:14.5px;line-height:1.3}
+.tagline{font:11.5px var(--f-mono);color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.person .why{color:var(--mute)}
+.person details summary{cursor:pointer;font-size:13px;color:var(--mute)}
+.person pre{white-space:pre-wrap;font:13px/1.5 var(--f-body);background:var(--soft);border-radius:8px;padding:10px;margin:6px 0}
+.skel{height:12px;border-radius:6px;background:linear-gradient(90deg,var(--soft),var(--line),var(--soft));background-size:200% 100%;animation:sh 1.2s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+.jd{font-size:14px;white-space:pre-wrap;max-height:260px;overflow:auto;background:var(--soft);border-radius:10px;padding:12px;margin:0}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--btn);color:var(--btn-ink);padding:8px 16px;border-radius:999px;font-size:13px;z-index:20}
+.foot{font-size:12px;color:var(--mute)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Night <span>Shift</span></div>
+    <div class="actions">
+      <span class="status" id="mode"></span>
+      <button class="btn" id="settingsBtn" aria-expanded="false">Resume &amp; search settings</button>
+      <button class="btn primary" id="searchBtn">Search new jobs</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <div class="settings" id="settings" hidden>
+    <section>
+      <h3>Your resume</h3>
+      <div class="row">
+        <span class="btn small file">Upload PDF<input type="file" id="pdf" accept="application/pdf,.pdf,.txt" aria-label="Upload resume PDF"></span>
+        <span class="muted" style="font-size:13px">or paste the text</span>
+      </div>
+      <textarea id="resumeText" placeholder="Paste your resume text here"></textarea>
+      <div class="row"><button class="btn small" id="readBtn">Read my resume</button><span class="status" id="resStatus"></span></div>
+      <p class="muted" style="margin:0;font-size:13px" id="pSummary"></p>
+      <h3 style="margin-top:4px">For application forms</h3>
+      <div class="contact">
+        <input id="cEmail" type="email" placeholder="Email" aria-label="Email" autocomplete="email">
+        <input id="cPhone" type="tel" placeholder="Phone" aria-label="Phone" autocomplete="tel">
+        <input id="cLinkedin" type="url" placeholder="LinkedIn URL" aria-label="LinkedIn URL">
+      </div>
+    </section>
+    <section>
+      <h3>Where to look · US jobs only</h3>
+      <p class="muted" style="margin:0;font-size:13px">Companies: the name in their Greenhouse, Ashby or Lever careers link</p>
+      <div class="chips" id="coChips"></div>
+      <div class="inline"><input type="text" id="coAdd" placeholder="e.g. andurilindustries" aria-label="Add a company"><button class="btn small" id="coAddBtn">Add</button></div>
+      <p class="muted" style="margin:0;font-size:13px">Job title keywords</p>
+      <div class="chips" id="kwChips"></div>
+      <div class="inline"><input type="text" id="kwAdd" placeholder="e.g. test" aria-label="Add a keyword"><button class="btn small" id="kwAddBtn">Add</button></div>
+      <h3 style="margin-top:4px">Found one yourself?</h3>
+      <textarea id="paste" placeholder="Paste a job description, with the link on the first line if you have it"></textarea>
+      <div class="row"><button class="btn small" id="addBtn">Add to today's list</button></div>
+    </section>
+  </div>
+
+  <div class="panes">
+    <nav class="list" id="list" aria-label="Jobs found"></nav>
+    <main class="detail" id="detail"></main>
+  </div>
+
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+/* ===================== profile & settings ===================== */
+let PROFILE = {
+  name:"Changyu Wang", first:"Changyu", last:"Wang",
+  school:"University of Pennsylvania, MSE Mechanical Engineering (Robotics), May 2027",
+  targets:["Applications / Field Engineer","NPI / Manufacturing Engineer","Sales / Solutions Engineer","Robotics deployment","Test Engineer"],
+  evidence:[
+    "MEAM 5200: owned the stirring module for a Franka Panda arm (Cartesian velocity control, Jacobian pseudoinverse IK, null-space projection), deployed live at a Penn seminar",
+    "Internship on Great Wall Motor autonomous-driving testing project",
+    "Research intern, China Waterborne Transport Research Institute; literature review on shore-based remote ship control centers",
+    "CAD/CAE: SolidWorks, Fusion 360, Onshape, ANSYS, COMSOL; embedded: ATmega/Arduino, I2C, sensor and servo wiring",
+    "Bilingual Chinese / English; familiar with Chinese manufacturing supply chains"
+  ],
+  limits:"Coding is not a core strength. Do not claim RTOS, production firmware, or senior-level experience."
+};
+let companies = ["andurilindustries","figureai","formlabs","flyzipline","skydio"];
+let keywords = ["applications","field","mechanical","manufacturing","NPI","test","solutions","robotics","new grad"];
+
+/* ===================== sample data (shown only when the live API isn't reachable) ===================== */
+const SAMPLE = [
+ { id:"s-kestrel", company:"Kestrel Robotics", role:"Field Applications Engineer, Robotic Arms", place:"Pittsburgh, PA", url:"https://careers.kestrel-robotics.example/fae-214", sample:true,
+   posting:"Support customers deploying 6-axis and 7-axis arms. Tune motion, debug cell integration on site, train operators. MS in ME or robotics. About 40% travel.",
+   d:{ fit:88, fit_reason:"Your Franka arm-control work matches the motion-tuning part of this job, and the travel fits what you want.",
+   cover_letter:`Dear Kestrel Robotics hiring team,
+
+I'm applying for the Field Applications Engineer role. At Penn I owned the stirring module for a Franka Panda arm: Cartesian velocity control through a Jacobian pseudoinverse, with null-space projection to keep the elbow clear. Getting it to run live taught me where arms misbehave near the edge of their workspace, which is the kind of problem your customers call about.
+
+I'm looking for a field role on purpose. I like being next to the hardware and explaining it to the people who run it, and the travel is a plus for me.
+
+I graduate in May 2027 and would be glad to talk.
+
+Changyu Wang`,
+   people:[
+    {type:"Penn alumni", who:"Penn alumni working as field applications engineers", does:"Install and tune robot arms at customer sites.", why:"Same path you're aiming for, and the Penn connection makes a reply more likely.", q:"field applications engineer robot arm University of Pennsylvania", hook:"I'm applying for field applications roles on robot arms and saw you took that path after Penn. I'd love to hear what your first year in the field looked like."},
+    {type:"Recruiter", who:"University recruiters at robot arm companies", does:"Run new-grad hiring and know when roles open.", why:"They know the hiring timeline and whether a referral matters.", q:"university recruiter robotics", hook:"I'm interested in new-grad field applications roles and wanted to ask when they usually open and who I should talk to."},
+    {type:"Team engineer", who:"Controls engineers on robot arm teams", does:"Write and tune the motion control that the field team deploys.", why:"They can tell you which parts of your Franka project matter most in interviews.", q:"controls engineer robot arm motion control", hook:"I built Cartesian velocity control for a Franka arm and I'm curious how product teams handle singularities near the workspace edge."}],
+   hold_question:null }},
+ { id:"s-ironbark", company:"Ironbark Motion", role:"NPI Engineer, Linear Actuators", place:"King of Prussia, PA", url:"https://jobs.ironbark-motion.example/npi-eng", sample:true,
+   posting:"Take new actuator designs from prototype to production. Work with overseas suppliers, run DFM reviews and pilot builds. Mandarin a plus.",
+   d:{ fit:82, fit_reason:"The posting names overseas suppliers and Mandarin, and it's 30 minutes from Penn.",
+   cover_letter:`Dear Ironbark Motion team,
+
+Your NPI Engineer posting asks for someone who can work with overseas suppliers, and Mandarin is a plus. I'm a native Mandarin speaker, familiar with Chinese manufacturing supply chains, and finishing an MSE in mechanical engineering (robotics) at Penn.
+
+I interned on Great Wall Motor's autonomous-driving testing project, where I saw how a test program is held to its requirements. I'd bring the same habit to pilot builds and DFM reviews: measure first, then talk to the supplier with data.
+
+King of Prussia is close to campus, and I'd be glad to meet in person.
+
+Changyu Wang`,
+   people:[
+    {type:"Team engineer", who:"NPI or manufacturing engineers at actuator companies", does:"Move designs from prototype to production and run pilot builds.", why:"You'd learn what a DFM review looks like day to day before the interview.", q:"NPI engineer actuator", hook:"I'm applying for NPI roles and would love to understand what a pilot build and DFM review look like from your side."},
+    {type:"Team engineer", who:"Supplier quality engineers who work with China", does:"Manage first-article inspection and supplier corrective actions.", why:"Your Mandarin is the strongest part of this application; they can tell you how to show it.", q:"supplier quality engineer China", hook:"I'm a Mandarin speaker heading into NPI work and I'm curious how you handle first-article failures with overseas suppliers."},
+    {type:"Penn alumni", who:"Penn MEAM alumni in manufacturing near Philadelphia", does:"Work in production engineering within driving distance of campus.", why:"Local and easy to meet in person.", q:"manufacturing engineer University of Pennsylvania Philadelphia", hook:"I'm looking at NPI and manufacturing roles around Philadelphia and saw you're a Penn alum in the area."}],
+   hold_question:null }},
+ { id:"s-corvid", company:"Corvid Automation", role:"Solutions Engineer, Collaborative Robots", place:"Boston, MA", url:"https://corvid-automation.example/apply/se-cobots", sample:true,
+   posting:"Scope cobot cells with customers, build demos, hand off to deployment. Engineering degree plus strong communication. Please indicate whether you will require visa sponsorship.",
+   d:{ fit:85, fit_reason:"Customer-facing robotics work, and your stirring module is close to the food-handling cells they sell.",
+   cover_letter:`Dear Corvid Automation team,
+
+I'd like to be considered for the Solutions Engineer role on your cobot team. My most relevant work is a robot stirring module I built for a Franka Panda arm at Penn, which ran live at a seminar. A food plant asking for a cobot to stir batter is close to a problem I've already worked on: the first thing I'd ask for is a sample, because viscosity changes the forces a lot.
+
+I want a role where I scope problems with customers rather than only working in CAD. I graduate in May 2027.
+
+Changyu Wang`,
+   people:[
+    {type:"Team engineer", who:"Solutions engineers at cobot companies", does:"Scope cells with customers and build demos before a sale.", why:"They run customer demos every week and can tell you what interviewers look for.", q:"solutions engineer collaborative robot", hook:"I'm applying for cobot solutions engineering roles and I'd love to hear how you prepare a live demo for a customer."},
+    {type:"Penn alumni", who:"Penn alumni in sales or solutions engineering", does:"Bridge engineering and customers.", why:"They made the same move from engineering into customer-facing work.", q:"sales engineer University of Pennsylvania robotics", hook:"I'm moving toward customer-facing engineering and saw you made that move after Penn."},
+    {type:"Recruiter", who:"Technical recruiters for automation companies in Boston", does:"Hire for customer-facing engineering roles.", why:"They can tell you how the team views new grads for solutions roles.", q:"technical recruiter automation Boston", hook:"I'm interested in solutions engineering roles in Boston and wanted to ask how your team thinks about new-grad candidates."}],
+   hold_question:"Will you now or in the future require visa sponsorship?" }},
+ { id:"s-halyard", company:"Halyard Marine Systems", role:"Remote Operations Test Engineer", place:"Norfolk, VA", url:"https://halyard-marine.example/jobs/rote", sample:true,
+   posting:"Test shore-based control of uncrewed vessels: latency, handover, operator workload. Mechanical or systems background.",
+   d:{ fit:79, fit_reason:"Your research on shore-based remote ship control is close to exactly this job. No hands-on vessel time yet.",
+   cover_letter:`Dear Halyard Marine Systems team,
+
+My research internship at China's Waterborne Transport Research Institute focused on shore-based remote control centers for ships. I reviewed how these centers handle link latency, the handover between onboard autonomy and the shore operator, and operator workload, which is close to what your test role covers.
+
+I don't have hands-on vessel time yet. My hands-on work is robot arms at Penn and vehicle testing on an autonomous-driving project, and I'd bring that test discipline to your program.
+
+Changyu Wang`,
+   people:[
+    {type:"Team engineer", who:"Test engineers in maritime autonomy", does:"Run sea trials and remote-operation tests.", why:"Ask what a first sea trial looks like; it fills your one gap.", q:"test engineer maritime autonomy uncrewed vessel", hook:"I researched shore-based remote ship control and I'm curious what a real remote-operations test day looks like."},
+    {type:"Researcher", who:"Researchers in remote ship operations", does:"Study shore control centers, latency and handover.", why:"Your research is the strongest thing you bring; they know which parts industry cares about.", q:"remote operations center autonomous ship", hook:"I wrote a literature review on shore-based remote control centers and would value your view on what industry cares about most."},
+    {type:"Recruiter", who:"Recruiters at maritime autonomy companies", does:"Hire test and systems engineers.", why:"A niche field where a direct introduction goes a long way.", q:"recruiter maritime autonomy", hook:"I'm interested in remote-operations test roles and wanted to ask how your team hires new grads."}],
+   hold_question:null }}
+];
+
+/* ===================== state ===================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function store(k,v){ try{ localStorage.setItem("ns2_"+k, JSON.stringify(v)); }catch(e){} }
+function load(k){ try{ const v=localStorage.getItem("ns2_"+k); return v?JSON.parse(v):null; }catch(e){ return null; } }
+function toast(t){ const d=document.createElement("div"); d.className="toast"; d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),2200); }
+let live=false, runs=[], status={}, details={}, selected=null;
+const todayKey = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+const dayLabel = k => { const [y,m,d]=k.split("-").map(Number); return new Date(y,m-1,d).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"}); };
+const isReal = j => j.url && !/\.example\b/.test(j.url) && /^https?:/.test(j.url);
+const li = q => "https://www.linkedin.com/search/results/people/?keywords="+encodeURIComponent(q)+"&origin=GLOBAL_SEARCH_HEADER";
+const ST={Alabama:"AL",Alaska:"AK",Arizona:"AZ",Arkansas:"AR",California:"CA",Colorado:"CO",Connecticut:"CT",Delaware:"DE",Florida:"FL",Georgia:"GA",Hawaii:"HI",Idaho:"ID",Illinois:"IL",Indiana:"IN",Iowa:"IA",Kansas:"KS",Kentucky:"KY",Louisiana:"LA",Maine:"ME",Maryland:"MD",Massachusetts:"MA",Michigan:"MI",Minnesota:"MN",Mississippi:"MS",Missouri:"MO",Montana:"MT",Nebraska:"NE",Nevada:"NV","New Hampshire":"NH","New Jersey":"NJ","New Mexico":"NM","New York":"NY","North Carolina":"NC","North Dakota":"ND",Ohio:"OH",Oklahoma:"OK",Oregon:"OR",Pennsylvania:"PA","Rhode Island":"RI","South Carolina":"SC","South Dakota":"SD",Tennessee:"TN",Texas:"TX",Utah:"UT",Vermont:"VT",Virginia:"VA",Washington:"WA","West Virginia":"WV",Wisconsin:"WI",Wyoming:"WY"};
+const shortPlace = p => String(p||"").replace(/,?\s*(United States( of America)?|USA)\b/g,"").replace(/,\s*(New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Rhode Island|South Carolina|South Dakota|West Virginia|[A-Z][a-z]+)\b/g,(m,n)=>ST[n]?", "+ST[n]:m).trim();
+const firstName = () => PROFILE.first || PROFILE.name.split(" ")[0];
+const chatMsg = h => `Hi [Name], I'm ${firstName()}, a robotics master's student at Penn (MEAM, graduating May 2027). ${h} Would you have 15 minutes for a quick call in the next couple of weeks?\n\nThanks,\n${firstName()}`;
+
+/* ===================== settings ===================== */
+function renderProfile(){
+  $("#pSummary").textContent = `Using: ${PROFILE.name}. Targets: ${(PROFILE.targets||[]).join(", ")}.`;
+}
+function chipList(el, arr, onChange){
+  el.innerHTML = arr.map((c,i)=>`<span class="tag">${esc(c)}<button aria-label="Remove ${esc(c)}" data-i="${i}">×</button></span>`).join("");
+  el.querySelectorAll("button").forEach(b=>b.onclick=()=>{ arr.splice(+b.dataset.i,1); onChange(); });
+}
+function renderChips(){ chipList($("#coChips"),companies,renderChips); chipList($("#kwChips"),keywords,renderChips); store("co",companies); store("kw",keywords); }
+$("#coAddBtn").onclick=()=>{ const v=$("#coAdd").value.trim().toLowerCase().replace(/\s+/g,""); if(v&&!companies.includes(v)) companies.push(v); $("#coAdd").value=""; renderChips(); };
+$("#kwAddBtn").onclick=()=>{ const v=$("#kwAdd").value.trim(); if(v&&!keywords.includes(v)) keywords.push(v); $("#kwAdd").value=""; renderChips(); };
+$("#coAdd").onkeydown=e=>{ if(e.key==="Enter") $("#coAddBtn").click(); };
+$("#kwAdd").onkeydown=e=>{ if(e.key==="Enter") $("#kwAddBtn").click(); };
+["cEmail","cPhone","cLinkedin"].forEach(id=>{ const v=load(id); if(v) $("#"+id).value=v; $("#"+id).oninput=()=>{ store(id,$("#"+id).value); }; });
+function toggleSettings(open){ const s=$("#settings"); s.hidden = open===undefined ? !s.hidden : !open; $("#settingsBtn").setAttribute("aria-expanded", String(!s.hidden)); }
+$("#settingsBtn").onclick=()=>toggleSettings();
+
+let pdfReady=null;
+function loadPdfJs(){
+  if(pdfReady) return pdfReady;
+  pdfReady=new Promise((res,rej)=>{ const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    s.onload=()=>{ window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; res(window.pdfjsLib); }; s.onerror=rej; document.head.appendChild(s); });
+  return pdfReady;
+}
+$("#pdf").onchange=async e=>{
+  const f=e.target.files[0], st=$("#resStatus"); if(!f) return;
+  if(/\.txt$/i.test(f.name)){ $("#resumeText").value=await f.text(); return; }
+  st.className="status"; st.textContent="Reading PDF…";
+  try{
+    const lib=await loadPdfJs(); const pdf=await lib.getDocument({data:await f.arrayBuffer()}).promise;
+    let out=""; for(let i=1;i<=pdf.numPages;i++){ const pg=await pdf.getPage(i); const tc=await pg.getTextContent(); out+=tc.items.map(t=>t.str).join(" ")+"\n"; }
+    $("#resumeText").value=out.trim(); st.textContent=`Read ${pdf.numPages} page${pdf.numPages>1?"s":""}. Press "Read my resume".`;
+  }catch(err){ st.className="status err"; st.textContent="Couldn't read that PDF. Paste the text instead."; }
+};
+$("#readBtn").onclick=async()=>{
+  const t=$("#resumeText").value.trim(), st=$("#resStatus");
+  if(!t){ st.className="status err"; st.textContent="Upload a PDF or paste your resume first."; return; }
+  if(!live){ st.className="status err"; st.textContent="The live AI isn't connected on this page, so the current profile stays."; return; }
+  st.className="status"; st.textContent="Reading your resume…";
+  try{
+    const r=await fetch("api/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:t})});
+    const d=await r.json(); if(!r.ok||!d.name) throw new Error(d.error||"bad response");
+    PROFILE={...PROFILE,...d}; store("profile",PROFILE); renderProfile(); details={}; store("details",details);
+    [["cEmail","email"],["cPhone","phone"],["cLinkedin","linkedin"]].forEach(([id,k])=>{ if(d[k]&&!$("#"+id).value){ $("#"+id).value=d[k]; store(id,d[k]); } });
+    if(d.keywords&&d.keywords.length){ keywords=[...new Set([...d.keywords,...keywords])].slice(0,12); renderChips(); }
+    st.className="status ok"; st.textContent="Profile updated. New cover letters will use it.";
+  }catch(err){ st.className="status err"; st.textContent="The AI couldn't read it: "+err.message; }
+};
+$("#addBtn").onclick=()=>{
+  const t=$("#paste").value.trim(); if(!t) return;
+  const lines=t.split("\n"); const url=/^https?:\/\//.test(lines[0].trim())?lines.shift().trim():"";
+  const job={id:"p"+Date.now(), company:"Pasted posting", role:(lines.find(l=>l.trim())||"Job").trim().slice(0,80), place:"", url, posting:lines.join("\n").slice(0,4000), pasted:true};
+  addToToday([job]); $("#paste").value=""; selected=job.id; renderAll(); toast("Added to today's list");
+};
+
+/* ===================== runs (jobs grouped by date) ===================== */
+function addToToday(jobs){
+  const k=todayKey(); let r=runs.find(x=>x.date===k);
+  if(!r){ r={date:k,jobs:[]}; runs.unshift(r); }
+  const seen=new Set(r.jobs.map(j=>j.id));
+  jobs.forEach(j=>{ if(!seen.has(j.id)) r.jobs.push(j); });
+  runs.sort((a,b)=>b.date.localeCompare(a.date)); runs=runs.slice(0,14);
+  if(live) store("runs",runs);
+}
+function allJobs(){ return runs.flatMap(r=>r.jobs); }
+function findJob(id){ return allJobs().find(j=>j.id===id); }
+
+$("#searchBtn").onclick=async()=>{
+  const b=$("#searchBtn");
+  if(!live){ toast("Sample mode: deploy with your API key to search real jobs"); return; }
+  if(!companies.length){ toggleSettings(true); toast("Add at least one company first"); return; }
+  b.disabled=true; b.textContent="Searching career pages…";
+  try{
+    const u=`api/search?companies=${encodeURIComponent(companies.join(","))}&keywords=${encodeURIComponent(keywords.join(","))}&limit=10`;
+    const r=await fetch(u); const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status);
+    addToToday(d.jobs||[]);
+    const bad=(d.boards||[]).filter(x=>x.error).map(x=>x.company);
+    const n=(d.jobs||[]).length;
+    toast(n?`Found ${n} US job${n>1?"s":""}`:"No matching US jobs. Try other keywords.");
+    if(bad.length) showBanner(`No public career page found for: ${bad.join(", ")}. Check the name in their careers link.`);
+    if(n){ toggleSettings(false); if(!selected) selected=d.jobs[0].id; }
+    renderAll();
+  }catch(e){ toast("Search failed: "+e.message); }
+  b.disabled=false; b.textContent="Search new jobs";
+};
+function showBanner(t){ const b=$("#banner"); b.textContent=t; b.hidden=!t; }
+
+/* ===================== left list ===================== */
+function renderList(){
+  const L=$("#list");
+  if(!runs.length || !allJobs().length){
+    L.innerHTML=`<div class="dayhead"><b>${esc(dayLabel(todayKey()))}</b></div><div class="empty">No jobs yet. Press <b>Search new jobs</b>, or paste a posting in settings.</div>`;
+    return;
+  }
+  L.innerHTML=runs.filter(r=>r.jobs.length).map(r=>`<section class="day">
+    <div class="dayhead"><b>${esc(dayLabel(r.date))}</b><span class="label">${r.jobs.length} job${r.jobs.length>1?"s":""}</span></div>
+    ${r.jobs.map(j=>{
+      const s=status[j.id]; const pill = s==="applied"?`<span class="pill applied">Applied</span>`: s==="skipped"?`<span class="pill skipped">Skipped</span>`:`<span class="pill">New</span>`;
+      return `<div class="job ${selected===j.id?"on":""}" tabindex="0" role="button" data-id="${esc(j.id)}">
+        <span class="role">${esc(j.role)}</span>${pill}
+        <span class="meta">${esc(j.company)}${j.place?" · "+esc(shortPlace(j.place)):""}</span>
+        ${isReal(j)?`<a class="lnk" href="${esc(j.url)}" target="_blank" rel="noopener">View posting ↗</a>`:`<span class="lnk" style="text-decoration:none">${j.sample?"Sample posting":"Pasted posting"}</span>`}
+      </div>`; }).join("")}
+  </section>`).join("");
+  L.querySelectorAll(".job").forEach(el=>{
+    const go=()=>{ selected=el.dataset.id; store("sel",selected); renderAll(); if(innerWidth<860) $("#detail").scrollIntoView({behavior:"smooth"}); };
+    el.onclick=e=>{ if(e.target.closest("a")) return; go(); };
+    el.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
+  });
+}
+
+/* ===================== right detail ===================== */
+const pending={};
+async function getDetail(j, force){
+  if(j.d && !force) return j.d;
+  if(details[j.id] && !force) return details[j.id];
+  if(!live) return null;
+  if(pending[j.id] && !force) return pending[j.id];
+  pending[j.id]=(async()=>{
+    const r=await fetch("api/agent",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({job:{company:j.company,role:j.role,place:j.place,posting:j.posting},profile:PROFILE})});
+    const d=await r.json(); if(!r.ok||!d.cover_letter) throw new Error(d.error||"no cover letter returned");
+    if(j.pasted){ if(d.company) j.company=d.company; if(d.role) j.role=d.role; if(d.place) j.place=d.place; store("runs",runs); }
+    details[j.id]=d; store("details",details); return d;
+  })();
+  try{ return await pending[j.id]; } finally{ delete pending[j.id]; }
+}
+async function renderDetail(force){
+  const D=$("#detail");
+  const j=selected&&findJob(selected);
+  if(!j){ D.innerHTML=`<h1>Pick a job on the left</h1><p class="muted" style="margin:0">You'll see a cover letter written from that job description, the people worth contacting, and the choice to apply.</p>`; return; }
+  const head=`<div style="display:flex;flex-direction:column;gap:8px"><h1>${esc(j.role)}</h1>
+    <div class="sub"><span>${esc(j.company)}${j.place?" · "+esc(shortPlace(j.place)):""}</span>${isReal(j)?`<a class="btn small" href="${esc(j.url)}" target="_blank" rel="noopener">Open posting ↗</a>`:""}</div></div>`;
+  D.innerHTML=head+`<div class="sec"><div class="label">Writing a cover letter from this job description…</div><div class="skel" style="width:90%"></div><div class="skel" style="width:75%"></div><div class="skel" style="width:82%"></div></div>`;
+  let d;
+  try{ d=await getDetail(j, force); }
+  catch(e){ if(selected!==j.id) return; D.innerHTML=head+`<div class="warn">The AI didn't answer (${esc(e.message)}). <button class="btn small" id="retry">Try again</button></div>`; $("#retry").onclick=()=>renderDetail(true); return; }
+  if(selected!==j.id) return;
+  if(!d){ D.innerHTML=head+`<div class="warn">Live AI isn't connected on this page. Deploy with your API key to write cover letters for real postings.</div>`+jdHTML(j); return; }
+  const s=status[j.id];
+  D.innerHTML = head
+    + (d.fit!=null?`<div class="fit"><b>Fit ${esc(d.fit)}/100.</b> ${esc(d.fit_reason||"")}</div>`:"")
+    + decideHTML(j,d,s)
+    + `<div class="sec"><div class="sechead"><span class="label">Cover letter · written from this JD · edit freely</span>
+        <div class="row"><button class="btn small" id="copyCl">Copy</button>${live&&!j.sample?`<button class="btn small" id="regen">Rewrite</button>`:""}</div></div>
+        <textarea class="cl" id="cl" aria-label="Cover letter">${esc(d.cover_letter)}</textarea></div>`
+    + peopleHTML(d)
+    + jdHTML(j);
+  wire(j,d);
+}
+function decideHTML(j,d,s){
+  const hold = d.hold_question ? `<div class="warn">The application may ask: <b>${esc(d.hold_question)}</b> Night Shift never answers this for you.</div>` : "";
+  if(s==="applied") return `<div class="kit"><b>Applied.</b> You marked this as submitted.<div class="row"><button class="btn small" id="undo">Undo</button></div></div>`;
+  if(s==="skipped") return `<div class="decide"><span class="q">You chose not to apply.</span><button class="btn small" id="undo">Undo</button></div>`;
+  if(s==="applying") return hold+kitHTML(j);
+  return hold+`<div class="decide"><span class="q">Apply to this job?</span><button class="btn ok" id="yes">Yes, apply</button><button class="btn" id="no">Not this one</button></div>`;
+}
+function kitHTML(j){
+  return `<div class="kit"><b>Apply in three steps</b>
+    <ol>
+      <li>Drag <a class="bm" id="bm" href="#" title="Drag to your bookmarks bar">★ Night Shift fill</a> to your bookmarks bar (once).</li>
+      <li>${isReal(j)?`<a class="btn small primary" href="${esc(j.url)}" target="_blank" rel="noopener">Open the official application ↗</a>`:"Open the official application (sample job: none)."} Then click the bookmark. It fills your name, contact and this cover letter.</li>
+      <li>Attach your resume, check every field, and press Submit yourself.</li>
+    </ol>
+    <div class="row"><button class="btn small ok" id="done">I submitted it</button><button class="btn small" id="copyBm">Copy bookmark code</button><button class="btn small" id="undo">Cancel</button></div></div>`;
+}
+function peopleHTML(d){
+  const P=d.people||[]; if(!P.length) return "";
+  return `<div class="sec"><span class="label">LinkedIn network · ${P.length} people worth a coffee chat</span><div class="people">${P.map((p,k)=>`
+    <div class="person">
+      <span class="tagline">${esc(p.type||"Contact")}</span>
+      <b>${esc(p.who)}</b>
+      <span>${esc(p.does)}</span>
+      <span class="why">Why: ${esc(p.why)}</span>
+      <div class="row"><a class="btn small" href="${li(p.q||p.who)}" target="_blank" rel="noopener">Find them on LinkedIn ↗</a></div>
+      <details><summary>Coffee chat message</summary><pre id="m${k}">${esc(chatMsg(p.hook||""))}</pre><button class="btn small" data-copy="m${k}">Copy message</button></details>
+    </div>`).join("")}</div></div>`;
+}
+function jdHTML(j){ return `<details class="sec"><summary class="label" style="cursor:pointer">Job description</summary><p class="jd">${esc(j.posting||"No description")}</p></details>`; }
+function wire(j,d){
+  const set=v=>{ if(v) status[j.id]=v; else delete status[j.id]; store("status",status); renderAll(); };
+  const on=(id,f)=>{ const e=$("#"+id); if(e) e.onclick=f; };
+  on("yes",()=>set("applying")); on("no",()=>set("skipped")); on("done",()=>set("applied")); on("undo",()=>set(null));
+  on("copyCl",()=>copy($("#cl").value,"Cover letter copied"));
+  on("regen",()=>renderDetail(true));
+  on("copyBm",()=>copy(bookmarklet($("#cl")?$("#cl").value:d.cover_letter),"Bookmark code copied"));
+  const cl=$("#cl"); if(cl) cl.oninput=()=>{ d.cover_letter=cl.value; if(!j.d){ details[j.id]=d; store("details",details); } const bm=$("#bm"); if(bm) bm.href=bookmarklet(cl.value); };
+  const bm=$("#bm"); if(bm){ bm.href=bookmarklet(d.cover_letter); bm.onclick=e=>{ e.preventDefault(); toast("Drag this button to your bookmarks bar"); }; }
+  $("#detail").querySelectorAll("[data-copy]").forEach(b=>b.onclick=()=>copy($("#"+b.dataset.copy).textContent,"Message copied"));
+}
+function copy(t,ok){ try{ navigator.clipboard.writeText(t).then(()=>toast(ok),()=>toast("Select the text and copy it by hand")); }catch(e){ toast("Select the text and copy it by hand"); } }
+
+/* ===== autofill bookmarklet: runs on the official Greenhouse / Ashby / Lever page. It never presses Submit. ===== */
+function nsFill(D){
+  function txt(el){
+    var t=[el.id,el.name,el.getAttribute("aria-label"),el.placeholder,el.getAttribute("autocomplete")];
+    if(el.id){ var l=document.querySelector('label[for="'+el.id+'"]'); if(l) t.push(l.textContent); }
+    var a=el.parentElement; for(var d=0; a && d<3; d++, a=a.parentElement){ var q=a.querySelector("label,legend"); if(q && q.textContent.length<200){ t.push(q.textContent); break; } }
+    return t.join(" ").toLowerCase();
+  }
+  function set(el,v){
+    var proto = el.tagName==="TEXTAREA" ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    Object.getOwnPropertyDescriptor(proto,"value").set.call(el,v);
+    el.dispatchEvent(new Event("input",{bubbles:true})); el.dispatchEvent(new Event("change",{bubbles:true}));
+    el.style.outline="2px solid #f0b257";
+  }
+  var rules=[[/first.?name|given.?name/,D.first],[/last.?name|family.?name|surname/,D.last],[/full.?name|^name\b|\bname$/,D.full],
+    [/e-?mail/,D.email],[/phone|mobile/,D.phone],[/linkedin/,D.linkedin],[/school|university/,D.school],[/cover.?letter|additional information/,D.cover]];
+  Array.prototype.forEach.call(document.querySelectorAll("button,a"),function(b){ if(/enter manually/i.test(b.textContent)){ var box=b.parentElement&&b.parentElement.parentElement; if(box&&/cover/i.test(box.textContent)) b.click(); } });
+  setTimeout(function(){
+    var n=0, left=0;
+    Array.prototype.forEach.call(document.querySelectorAll('input[type=text],input[type=email],input[type=tel],input[type=url],input:not([type]),textarea'),function(el){
+      if(el.value||el.disabled) return;
+      var k=txt(el);
+      if(/sponsor|visa|authori[sz]|salary|compensation|pay expectation/.test(k)){ el.style.outline="2px solid #c27c12"; left++; return; }
+      for(var i=0;i<rules.length;i++){ if(rules[i][0].test(k)&&rules[i][1]){ set(el,rules[i][1]); n++; break; } }
+    });
+    alert("Night Shift filled "+n+" fields"+(left?" and left "+left+" for you (orange)":"")+". Attach your resume, check everything, then press Submit yourself.");
+  },400);
+}
+function bookmarklet(cover){
+  const D={first:firstName(), last:PROFILE.last||PROFILE.name.split(" ").slice(1).join(" "), full:PROFILE.name,
+    email:$("#cEmail").value.trim(), phone:$("#cPhone").value.trim(), linkedin:$("#cLinkedin").value.trim(), school:"University of Pennsylvania", cover:cover||""};
+  return "javascript:"+encodeURIComponent("("+nsFill.toString()+")("+JSON.stringify(D)+")");
+}
+
+/* ===================== boot ===================== */
+function renderAll(){ renderList(); renderDetail(); }
+async function boot(){
+  const p=load("profile"); if(p&&p.name) PROFILE=p;
+  const co=load("co"); if(co&&co.length) companies=co;
+  const kw=load("kw"); if(kw&&kw.length) keywords=kw;
+  renderProfile(); renderChips();
+  try{ const r=await fetch("api/agent"); const j=await r.json(); live=!!j.ok; }catch(e){ live=false; }
+  if(live){
+    runs=load("runs")||[]; status=load("status")||{}; details=load("details")||{}; selected=load("sel");
+    $("#mode").textContent="Live · real US career pages";
+    $("#foot").textContent="Jobs come from companies' official career pages. Nothing is ever submitted for you.";
+    if(!runs.length) toggleSettings(true);
+  }else{
+    runs=[{date:todayKey(), jobs:SAMPLE.map(j=>({...j}))}]; status={}; selected=SAMPLE[0].id;
+    $("#mode").textContent="Sample mode";
+    showBanner("Sample mode: these four companies are made up. Deploy with your API key to search real US jobs and write real cover letters.");
+    $("#foot").textContent="Prototype for IPD 5900 at Penn. Nothing is ever submitted for you.";
+  }
+  if(selected && !findJob(selected)) selected=null;
+  if(!selected && allJobs().length) selected=allJobs()[0].id;
+  renderAll();
+}
+boot();
+</script>
+</body>
+</html>
