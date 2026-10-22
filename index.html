@@ -328,11 +328,26 @@ const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">"
 function store(k,v){ try{ localStorage.setItem("ns2_"+k, JSON.stringify(v)); }catch(e){} }
 function load(k){ try{ const v=localStorage.getItem("ns2_"+k); return v?JSON.parse(v):null; }catch(e){ return null; } }
 function toast(t){ const d=document.createElement("div"); d.className="toast"; d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),2200); }
-let live=false, runs=[], status={}, details={}, selected=null;
+let peopleLive=false, live=false, runs=[], status={}, details={}, selected=null;
 const todayKey = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
 const dayLabel = k => { const [y,m,d]=k.split("-").map(Number); return new Date(y,m-1,d).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"}); };
 const isReal = j => j.url && !/\.example\b/.test(j.url) && /^https?:/.test(j.url);
 const li = q => "https://www.linkedin.com/search/results/people/?keywords="+encodeURIComponent(q)+"&origin=GLOBAL_SEARCH_HEADER";
+const STOP=/\b(university|of|pennsylvania|penn|upenn|alumni|alumnus|graduate|grad|the|at|on|in|for|now|who|working|team|or|and|a|an|s)\b/gi;
+function shortTitle(p, company){
+  if(p.title) return String(p.title).split(/\s+/).slice(0,4).join(" ");
+  let t=String(p.q||p.who||"").replace(new RegExp(String(company).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"gi"),"").replace(/[^\w\s-]/g," ").replace(STOP," ").replace(/\s+/g," ").trim();
+  return t.split(" ").slice(0,3).join(" ") || "engineer";
+}
+function peopleLinks(p, company){
+  const title=shortTitle(p, company), co=String(company||"").trim();
+  const alum=/alum/i.test(p.type||"");
+  const linkedin = alum
+    ? "https://www.linkedin.com/school/university-of-pennsylvania/people/?keywords="+encodeURIComponent(co)
+    : li(`${co} ${title}`.trim());
+  const g = `site:linkedin.com/in "${co}" ${title}${alum?' "University of Pennsylvania"':""}`;
+  return { linkedin, google:"https://www.google.com/search?q="+encodeURIComponent(g), label: alum?`Penn alumni at ${co}`:`${co} · ${title}` };
+}
 const ST={Alabama:"AL",Alaska:"AK",Arizona:"AZ",Arkansas:"AR",California:"CA",Colorado:"CO",Connecticut:"CT",Delaware:"DE",Florida:"FL",Georgia:"GA",Hawaii:"HI",Idaho:"ID",Illinois:"IL",Indiana:"IN",Iowa:"IA",Kansas:"KS",Kentucky:"KY",Louisiana:"LA",Maine:"ME",Maryland:"MD",Massachusetts:"MA",Michigan:"MI",Minnesota:"MN",Mississippi:"MS",Missouri:"MO",Montana:"MT",Nebraska:"NE",Nevada:"NV","New Hampshire":"NH","New Jersey":"NJ","New Mexico":"NM","New York":"NY","North Carolina":"NC","North Dakota":"ND",Ohio:"OH",Oklahoma:"OK",Oregon:"OR",Pennsylvania:"PA","Rhode Island":"RI","South Carolina":"SC","South Dakota":"SD",Tennessee:"TN",Texas:"TX",Utah:"UT",Vermont:"VT",Virginia:"VA",Washington:"WA","West Virginia":"WV",Wisconsin:"WI",Wyoming:"WY"};
 const shortPlace = p => String(p||"").replace(/,?\s*(United States( of America)?|USA)\b/g,"").replace(/,\s*(New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Rhode Island|South Carolina|South Dakota|West Virginia|[A-Z][a-z]+)\b/g,(m,n)=>ST[n]?", "+ST[n]:m).trim();
 function detectAuth(raw){
@@ -376,7 +391,7 @@ function badgesHTML(a){
   return h ? `<div class="badges">${h}</div>` : "";
 }
 const firstName = () => PROFILE.first || PROFILE.name.split(" ")[0];
-const chatMsg = h => `Hi [Name], I'm ${firstName()}, a robotics master's student at Penn (MEAM, graduating May 2027). ${h} Would you have 15 minutes for a quick call in the next couple of weeks?\n\nThanks,\n${firstName()}`;
+const chatMsg = (h, name) => `Hi ${name||"[Name]"}, I'm ${firstName()}, a robotics master's student at Penn (MEAM, graduating May 2027). ${h} Would you have 15 minutes for a quick call in the next couple of weeks?\n\nThanks,\n${firstName()}`;
 
 /* ===================== settings ===================== */
 function renderProfile(){
@@ -532,9 +547,10 @@ async function renderDetail(force){
     + `<div class="sec"><div class="sechead"><span class="label" style="display:inline-flex;gap:6px;align-items:center">${ic("doc")}Cover letter · written from this JD · edit freely</span>
         <div class="row"><button class="btn small" id="copyCl">${ic("copy")}Copy</button>${live&&!j.sample?`<button class="btn small" id="regen">${ic("refresh")}Rewrite</button>`:""}</div></div>
         <textarea class="cl" id="cl" aria-label="Cover letter">${esc(d.cover_letter)}</textarea></div>`
-    + peopleHTML(d)
+    + peopleHTML(d, j)
     + jdHTML(j);
   wire(j,d);
+  loadRealPeople(j,d);
 }
 function authHTML(j){
   const a=authOf(j), bad=rulesOut(a);
@@ -566,16 +582,44 @@ function kitHTML(j){
     </ol>
     <div class="row"><button class="btn small ok" id="done">I submitted it</button><button class="btn small" id="copyBm">Copy bookmark code</button><button class="btn small" id="undo">Cancel</button></div></div>`;
 }
-function peopleHTML(d){
-  const P=d.people||[]; if(!P.length) return "";
+async function loadRealPeople(j, d){
+  if(!peopleLive || j.sample || d.real || !(d.people||[]).length) return;
+  try{
+    const r=await fetch("api/people",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({company:j.company, people:d.people})});
+    const x=await r.json(); if(!r.ok) throw new Error(x.error||r.status);
+    d.real=x.people||[];
+  }catch(e){ d.real=[]; d.realErr=e.message; }
+  if(!j.d){ details[j.id]=d; store("details",details); }
+  const box=$("#peopleSec"); if(box && selected===j.id){ box.outerHTML=peopleHTML(d,j); wirePeople(); }
+}
+function realPeopleHTML(d, j){
+  const R=d.real||[];
   const tIcon=t=>/alum/i.test(t)?"cap":/recruit/i.test(t)?"brief":/engineer/i.test(t)?"wrench":/research/i.test(t)?"flask":"user";
-  return `<div class="sec"><span class="label" style="display:inline-flex;gap:6px;align-items:center">${LI}LinkedIn network · ${P.length} people worth a coffee chat</span><div class="people">${P.map((p,k)=>`
+  return `<div class="sec" id="peopleSec"><span class="label" style="display:inline-flex;gap:6px;align-items:center">${LI}LinkedIn network · ${R.length} real people worth a coffee chat</span>
+  <div class="people">${R.map((p,k)=>{ const first=String(p.name).split(/\s+/)[0]; return `
+    <div class="person">
+      <span class="ptype"><i>${ic(tIcon(p.type||""))}</i><span class="tagline">${esc(p.type||"Contact")}</span></span>
+      <div style="display:flex;gap:10px;align-items:center">${avatar(p.name)}<div style="min-width:0"><b>${esc(p.name)}</b><div class="muted" style="font-size:13px">${esc(p.headline||"")}</div></div></div>
+      ${p.snippet?`<span class="muted" style="font-size:13px">${esc(p.snippet)}</span>`:""}
+      <span class="why">Why: ${esc(p.why)}</span>
+      <div class="row"><a class="btn small" href="${esc(p.url)}" target="_blank" rel="noopener">${LI}Open ${esc(first)}'s profile</a></div>
+      <details><summary style="display:inline-flex;gap:5px;align-items:center">${ic("chat")}Coffee chat message</summary><pre id="m${k}">${esc(chatMsg(p.hook||"", first))}</pre><button class="btn small" data-copy="m${k}">${ic("copy")}Copy message</button></details>
+    </div>`; }).join("")}</div>
+  <span class="muted" style="font-size:12.5px">Found through a public web search of LinkedIn profiles. Check each profile is still current before you reach out.</span></div>`;
+}
+function wirePeople(){ $("#detail").querySelectorAll("#peopleSec [data-copy]").forEach(b=>b.onclick=()=>copy($("#"+b.dataset.copy).textContent,"Message copied")); }
+function peopleHTML(d, j){
+  if(d.real && d.real.length) return realPeopleHTML(d, j);
+  const P=d.people||[]; if(!P.length) return "";
+  const loading = peopleLive && !j.sample && !d.real;
+  const tIcon=t=>/alum/i.test(t)?"cap":/recruit/i.test(t)?"brief":/engineer/i.test(t)?"wrench":/research/i.test(t)?"flask":"user";
+  return `<div class="sec" id="peopleSec"><span class="label" style="display:inline-flex;gap:6px;align-items:center">${LI}LinkedIn network · ${P.length} people worth a coffee chat</span>${loading?`<div class="label">Finding real people on LinkedIn…</div><div class="skel" style="width:70%"></div>`:""}${d.realErr?`<span class="muted" style="font-size:12.5px">Couldn't look up real profiles (${esc(d.realErr)}). Use the search buttons below.</span>`:""}<span class="muted" style="font-size:12.5px">Search LinkedIn while you're logged in to LinkedIn. The Google button lists real public profiles even when you're not.</span><div class="people">${P.map((p,k)=>`
     <div class="person">
       <span class="ptype"><i>${ic(tIcon(p.type||""))}</i><span class="tagline">${esc(p.type||"Contact")}</span></span>
       <b>${esc(p.who)}</b>
       <span>${esc(p.does)}</span>
       <span class="why">Why: ${esc(p.why)}</span>
-      <div class="row"><a class="btn small" href="${li(p.q||p.who)}" target="_blank" rel="noopener">${LI}Find them on LinkedIn</a></div>
+      ${(()=>{ const L=peopleLinks(p, j.company); return `<span class="muted" style="font-size:12.5px">${ic("search")} Searches: ${esc(L.label)}</span><div class="row"><a class="btn small" href="${L.linkedin}" target="_blank" rel="noopener">${LI}${/alum/i.test(p.type||"")?"Penn alumni on LinkedIn":"Search LinkedIn"}</a><a class="btn small" href="${L.google}" target="_blank" rel="noopener">${ic("search")}Real profiles via Google</a></div>`; })()}
       <details><summary style="display:inline-flex;gap:5px;align-items:center">${ic("chat")}Coffee chat message</summary><pre id="m${k}">${esc(chatMsg(p.hook||""))}</pre><button class="btn small" data-copy="m${k}">${ic("copy")}Copy message</button></details>
     </div>`).join("")}</div></div>`;
 }
@@ -637,6 +681,7 @@ async function boot(){
   [["waCPT","cpt"],["waOPT","opt"],["waH1B","h1b"],["waHide","hide"]].forEach(([id,k])=>{ const el=$("#"+id); el.checked=!!WA[k]; el.onchange=()=>{ WA[k]=el.checked; store("wa",WA); renderAll(); }; });
   renderProfile(); renderChips();
   try{ const r=await fetch("api/agent"); const j=await r.json(); live=!!j.ok; }catch(e){ live=false; }
+  if(live){ try{ const r=await fetch("api/people"); const j=await r.json(); peopleLive=!!j.ok; }catch(e){ peopleLive=false; } }
   if(live){
     runs=load("runs")||[]; status=load("status")||{}; details=load("details")||{}; selected=load("sel");
     $("#mode").textContent="Live · real US career pages";
