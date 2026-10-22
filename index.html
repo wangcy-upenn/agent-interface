@@ -13,7 +13,7 @@
 :root{
   --bg:#f3f5f8; --card:#ffffff; --ink:#18202e; --mute:#5c6678; --line:#dce1e8; --soft:#f1f3f7;
   --accent:#a8620c; --accent-soft:#fbf1e1; --ok:#2b8a56; --ok-soft:#e6f3eb; --skip:#8b93a4; --warn:#b4700f; --warn-soft:#fdf2df;
-  --btn:#18202e; --btn-ink:#ffffff;
+  --btn:#18202e; --btn-ink:#ffffff; --bad:#c23a2e; --bad-soft:#fbe9e7;
   --f-display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
   --f-body:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -21,11 +21,11 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#11161f; --card:#19202c; --ink:#e4e8f0; --mute:#97a1b4; --line:#2b3444; --soft:#212938;
   --accent:#f0b257; --accent-soft:#2d2618; --ok:#6fcf98; --ok-soft:#1c2e25; --skip:#7e8799; --warn:#f0b257; --warn-soft:#2f2616;
-  --btn:#e4e8f0; --btn-ink:#11161f; color-scheme:dark }}
+  --btn:#e4e8f0; --btn-ink:#11161f; --bad:#ff8a7a; --bad-soft:#3a1f1d; color-scheme:dark }}
 :root[data-theme="dark"]{
   --bg:#11161f; --card:#19202c; --ink:#e4e8f0; --mute:#97a1b4; --line:#2b3444; --soft:#212938;
   --accent:#f0b257; --accent-soft:#2d2618; --ok:#6fcf98; --ok-soft:#1c2e25; --skip:#7e8799; --warn:#f0b257; --warn-soft:#2f2616;
-  --btn:#e4e8f0; --btn-ink:#11161f; color-scheme:dark }
+  --btn:#e4e8f0; --btn-ink:#11161f; --bad:#ff8a7a; --bad-soft:#3a1f1d; color-scheme:dark }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);
@@ -78,16 +78,49 @@ textarea{resize:vertical;min-height:70px}
 .day:first-child{border-top:0}
 .dayhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:14px 16px 8px}
 .dayhead b{font-family:var(--f-display);font-size:18px;font-weight:700;letter-spacing:-.01em}
-.job{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 16px;border-top:1px solid var(--soft);cursor:pointer}
+.job{display:grid;grid-template-columns:36px 1fr auto;gap:10px;padding:12px 16px;border-top:1px solid var(--soft);cursor:pointer;align-items:start}
+.jmain{display:flex;flex-direction:column;gap:3px;min-width:0}
 .job:hover{background:var(--soft)}
 .job.on{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
 .job .role{font-weight:600;font-size:14.5px;line-height:1.3}
-.job .meta{font-size:13px;color:var(--mute);grid-column:1}
-.job .lnk{font-size:12.5px;grid-column:1;color:var(--mute);text-decoration:underline;text-underline-offset:2px;justify-self:start}
-.pill{grid-column:2;grid-row:1/span 3;align-self:center;font:11.5px var(--f-mono);padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+.job .meta{font-size:13px;color:var(--mute);display:flex;flex-wrap:wrap;gap:2px 10px}
+.job .meta span{display:inline-flex;align-items:center;gap:4px}
+.job .lnk{font-size:12.5px;color:var(--mute);text-decoration:none;display:inline-flex;align-items:center;gap:4px;align-self:flex-start}
+.job .lnk:hover{color:var(--ink);text-decoration:underline}
+.pill{align-self:start;margin-top:2px;font:11.5px var(--f-mono);padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
 .pill.applied{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
 .pill.skipped{color:var(--skip)}
 .empty{padding:22px 16px;font-size:14px;color:var(--mute)}
+.ic{width:15px;height:15px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px}
+.btn .ic{width:16px;height:16px}
+.li{width:16px;height:16px;flex:none;border-radius:3px;vertical-align:-3px}
+.avatar{--h:30;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font:700 16px var(--f-display);background:hsl(var(--h) 65% 90%);color:hsl(var(--h) 55% 28%)}
+.avatar.big{width:48px;height:48px;font-size:22px;border-radius:12px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .avatar{background:hsl(var(--h) 30% 24%);color:hsl(var(--h) 70% 82%)}}
+:root[data-theme="dark"] .avatar{background:hsl(var(--h) 30% 24%);color:hsl(var(--h) 70% 82%)}
+.badges{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:2px}
+.b{display:inline-flex;align-items:center;gap:3px;font:600 11px/1 var(--f-body);padding:4px 7px;border-radius:999px;border:1px solid transparent;white-space:nowrap}
+.b .ic{width:11px;height:11px;stroke-width:2.6}
+.b.yes{background:var(--ok-soft);color:var(--ok)}
+.b.no{background:var(--bad-soft);color:var(--bad)}
+.b.unk{background:var(--soft);color:var(--mute);border-color:var(--line)}
+.b.us{background:transparent;color:var(--bad);border-color:var(--bad)}
+.ndaa{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#d42a2a;color:#fff;font:800 10px/1 var(--f-body);letter-spacing:-.01em;flex:none}
+.ndaa.sm{width:32px;height:32px;font-size:8.5px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:12px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--mute)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.auth{border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.auth.bad{border-color:var(--bad);background:var(--bad-soft)}
+.authhead{display:flex;align-items:center;gap:8px;font-weight:600}
+.auth ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+.quote{font-size:13px;color:var(--mute);border-left:3px solid var(--line);padding-left:10px}
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.check{display:inline-flex;align-items:center;gap:8px;font-size:14px;padding:7px 12px;border:1px solid var(--line);border-radius:999px;cursor:pointer;background:var(--soft)}
+.check input{width:16px;height:16px;accent-color:var(--ok);margin:0}
+.check.plain{border:0;background:none;padding:0;font-size:13px;color:var(--mute)}
+.ptype{display:inline-flex;align-items:center;gap:6px}
+.ptype i{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--accent-soft);color:var(--accent);font-style:normal}
+.ptype i .ic{width:15px;height:15px}
 
 .detail{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:20px;min-width:0}
 .detail h1{margin:0;font-family:var(--f-display);font-weight:800;font-size:clamp(22px,3vw,28px);line-height:1.15;letter-spacing:-.015em;text-wrap:balance}
@@ -121,13 +154,36 @@ textarea{resize:vertical;min-height:70px}
 </head>
 <body>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-building" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1M10 21v-3h4v3"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+<symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M8 13h8M8 17h6"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
+<symbol id="i-cap" viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/></symbol>
+<symbol id="i-brief" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18"/></symbol>
+<symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3l7.7-7.7a4 4 0 0 0-2-2z"/></symbol>
+<symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l4.5 4.5L19 7"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-q" viewBox="0 0 24 24"><path d="M9 9a3 3 0 1 1 4 2.8c-.6.3-1 .9-1 1.6V14M12 18h.01"/></symbol>
+<symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4 18a8 8 0 1 1 16 0M12 18l4-6"/></symbol>
+</defs></svg>
 <div class="wrap">
   <header class="top">
     <div class="brand">Night <span>Shift</span></div>
     <div class="actions">
       <span class="status" id="mode"></span>
-      <button class="btn" id="settingsBtn" aria-expanded="false">Resume &amp; search settings</button>
-      <button class="btn primary" id="searchBtn">Search new jobs</button>
+      <button class="btn" id="settingsBtn" aria-expanded="false"><svg class="ic"><use href="#i-sliders"/></svg>Resume &amp; search settings</button>
+      <button class="btn primary" id="searchBtn"><svg class="ic"><use href="#i-search"/></svg>Search new jobs</button>
     </div>
   </header>
 
@@ -137,7 +193,7 @@ textarea{resize:vertical;min-height:70px}
     <section>
       <h3>Your resume</h3>
       <div class="row">
-        <span class="btn small file">Upload PDF<input type="file" id="pdf" accept="application/pdf,.pdf,.txt" aria-label="Upload resume PDF"></span>
+        <span class="btn small file"><svg class="ic"><use href="#i-upload"/></svg>Upload PDF<input type="file" id="pdf" accept="application/pdf,.pdf,.txt" aria-label="Upload resume PDF"></span>
         <span class="muted" style="font-size:13px">or paste the text</span>
       </div>
       <textarea id="resumeText" placeholder="Paste your resume text here"></textarea>
@@ -149,6 +205,14 @@ textarea{resize:vertical;min-height:70px}
         <input id="cPhone" type="tel" placeholder="Phone" aria-label="Phone" autocomplete="tel">
         <input id="cLinkedin" type="url" placeholder="LinkedIn URL" aria-label="LinkedIn URL">
       </div>
+      <h3 style="margin-top:4px;display:flex;align-items:center;gap:6px"><svg class="ic"><use href="#i-shield"/></svg>US work authorization</h3>
+      <p class="muted" style="margin:0;font-size:13px">Tick what you'll need. Every job gets a tag for each: green if the JD accepts it, red if it rules it out, grey if it doesn't say.</p>
+      <div class="checks">
+        <label class="check"><input type="checkbox" id="waCPT"> CPT</label>
+        <label class="check"><input type="checkbox" id="waOPT"> OPT</label>
+        <label class="check"><input type="checkbox" id="waH1B"> H-1B sponsorship</label>
+      </div>
+      <label class="check plain"><input type="checkbox" id="waHide"> Hide jobs that rule me out (US citizens only, NDAA, or a red tag)</label>
     </section>
     <section>
       <h3>Where to look · US jobs only</h3>
@@ -193,7 +257,7 @@ let keywords = ["applications","field","mechanical","manufacturing","NPI","test"
 /* ===================== sample data (shown only when the live API isn't reachable) ===================== */
 const SAMPLE = [
  { id:"s-kestrel", company:"Kestrel Robotics", role:"Field Applications Engineer, Robotic Arms", place:"Pittsburgh, PA", url:"https://careers.kestrel-robotics.example/fae-214", sample:true,
-   posting:"Support customers deploying 6-axis and 7-axis arms. Tune motion, debug cell integration on site, train operators. MS in ME or robotics. About 40% travel.",
+   posting:"Support customers deploying 6-axis and 7-axis arms. Tune motion, debug cell integration on site, train operators. MS in ME or robotics. About 40% travel. We are happy to sponsor H-1B visas for this role, and international students on OPT are welcome to apply.",
    d:{ fit:88, fit_reason:"Your Franka arm-control work matches the motion-tuning part of this job, and the travel fits what you want.",
    cover_letter:`Dear Kestrel Robotics hiring team,
 
@@ -227,7 +291,7 @@ Changyu Wang`,
     {type:"Penn alumni", who:"Penn MEAM alumni in manufacturing near Philadelphia", does:"Work in production engineering within driving distance of campus.", why:"Local and easy to meet in person.", q:"manufacturing engineer University of Pennsylvania Philadelphia", hook:"I'm looking at NPI and manufacturing roles around Philadelphia and saw you're a Penn alum in the area."}],
    hold_question:null }},
  { id:"s-corvid", company:"Corvid Automation", role:"Solutions Engineer, Collaborative Robots", place:"Boston, MA", url:"https://corvid-automation.example/apply/se-cobots", sample:true,
-   posting:"Scope cobot cells with customers, build demos, hand off to deployment. Engineering degree plus strong communication. Please indicate whether you will require visa sponsorship.",
+   posting:"Scope cobot cells with customers, build demos, hand off to deployment. Engineering degree plus strong communication. Candidates must be authorized to work in the United States without current or future visa sponsorship.",
    d:{ fit:85, fit_reason:"Customer-facing robotics work, and your stirring module is close to the food-handling cells they sell.",
    cover_letter:`Dear Corvid Automation team,
 
@@ -242,7 +306,7 @@ Changyu Wang`,
     {type:"Recruiter", who:"Technical recruiters for automation companies in Boston", does:"Hire for customer-facing engineering roles.", why:"They can tell you how the team views new grads for solutions roles.", q:"technical recruiter automation Boston", hook:"I'm interested in solutions engineering roles in Boston and wanted to ask how your team thinks about new-grad candidates."}],
    hold_question:"Will you now or in the future require visa sponsorship?" }},
  { id:"s-halyard", company:"Halyard Marine Systems", role:"Remote Operations Test Engineer", place:"Norfolk, VA", url:"https://halyard-marine.example/jobs/rote", sample:true,
-   posting:"Test shore-based control of uncrewed vessels: latency, handover, operator workload. Mechanical or systems background.",
+   posting:"Test shore-based control of uncrewed vessels: latency, handover, operator workload. Mechanical or systems background. This program is subject to ITAR; you must be a U.S. person. Due to NDAA requirements, citizens of China, Iran, Russia or North Korea are not eligible.",
    d:{ fit:79, fit_reason:"Your research on shore-based remote ship control is close to exactly this job. No hands-on vessel time yet.",
    cover_letter:`Dear Halyard Marine Systems team,
 
@@ -271,6 +335,46 @@ const isReal = j => j.url && !/\.example\b/.test(j.url) && /^https?:/.test(j.url
 const li = q => "https://www.linkedin.com/search/results/people/?keywords="+encodeURIComponent(q)+"&origin=GLOBAL_SEARCH_HEADER";
 const ST={Alabama:"AL",Alaska:"AK",Arizona:"AZ",Arkansas:"AR",California:"CA",Colorado:"CO",Connecticut:"CT",Delaware:"DE",Florida:"FL",Georgia:"GA",Hawaii:"HI",Idaho:"ID",Illinois:"IL",Indiana:"IN",Iowa:"IA",Kansas:"KS",Kentucky:"KY",Louisiana:"LA",Maine:"ME",Maryland:"MD",Massachusetts:"MA",Michigan:"MI",Minnesota:"MN",Mississippi:"MS",Missouri:"MO",Montana:"MT",Nebraska:"NE",Nevada:"NV","New Hampshire":"NH","New Jersey":"NJ","New Mexico":"NM","New York":"NY","North Carolina":"NC","North Dakota":"ND",Ohio:"OH",Oklahoma:"OK",Oregon:"OR",Pennsylvania:"PA","Rhode Island":"RI","South Carolina":"SC","South Dakota":"SD",Tennessee:"TN",Texas:"TX",Utah:"UT",Vermont:"VT",Virginia:"VA",Washington:"WA","West Virginia":"WV",Wisconsin:"WI",Wyoming:"WY"};
 const shortPlace = p => String(p||"").replace(/,?\s*(United States( of America)?|USA)\b/g,"").replace(/,\s*(New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Rhode Island|South Carolina|South Dakota|West Virginia|[A-Z][a-z]+)\b/g,(m,n)=>ST[n]?", "+ST[n]:m).trim();
+function detectAuth(raw){
+  var t = String(raw||"").replace(/\s+/g," ");
+  var citizen = /\bu\.?s\.? citizen(ship)?\b[^.;]{0,60}\b(required|only|must)\b|\bmust (be|hold)( a)? (u\.?s\.?|united states) citizen|\brequires? (u\.?s\.? |united states )?citizenship|\b(security|secret|top secret|ts\/sci) clearance|\bitar\b|\bu\.?s\.? persons?\b|\bexport[- ]control/i.test(t);
+  var noSponsor = /\b(not|unable|cannot|can't|won't|no)\b[^.;]{0,40}\bsponsor|without (the need for )?(any )?(current or future )?(visa |employment |immigration )?sponsorship|authorized to work in the (u\.?s\.?|united states) without/i.test(t);
+  var yesSponsor = !noSponsor && /\b(will|can|able to|happy to|we) (provide |offer |consider )?(visa |h-?1b )?sponsor(ship)?\b|\bsponsorship (is )?(available|provided|offered)|\bh-?1b (sponsorship|transfers?) (is |are )?(available|supported|offered)|\bopen to sponsor/i.test(t);
+  var future = /now or in the future|future (visa )?sponsorship|current or future|at any time in the future/i.test(t);
+  var stuYes = /\b(stem )?(opt|cpt)\b[^.;]{0,60}\b(welcome|eligible|accepted|considered|acceptable)\b|\b(f-?1|international students?)\b[^.;]{0,60}\b(welcome|encouraged|eligible|considered)\b/i.test(t);
+  var stuNo = /\b(opt|cpt)\b[^.;]{0,40}\b(not|ineligible)\b/i.test(t);
+  var ctry = "(china|chinese|prc|people's republic of china|iran|iranian|russia|russian|north korea|north korean|dprk)";
+  var ndaa = new RegExp("\\bndaa\\b|national defense authorization act|countr(y|ies) of concern|foreign adversar|covered nation|(citizens?|nationals?|passports?|passport holders?) (of|from) [^.;]{0,40}\\b"+ctry+"\\b|\\b"+ctry+"\\b[^.;]{0,30}\\b(citizens|nationals|passport holders|passports)\\b","i").test(t);
+  var h1b = (citizen || noSponsor) ? "no" : yesSponsor ? "yes" : "unknown";
+  var stu = citizen ? "no" : stuNo ? "no" : stuYes ? "yes" : (noSponsor && future) ? "no" : "unknown";
+  return { cpt: stu, opt: stu, h1b: h1b, citizen: citizen, ndaa: ndaa };
+}
+
+let WA={cpt:false,opt:true,h1b:true,hide:false};
+const WA_LABEL={cpt:"CPT",opt:"OPT",h1b:"H-1B"};
+const ic = n => `<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const LI = `<svg class="li" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="4" fill="#0A66C2"/><path fill="#fff" d="M6.5 9.5h2.6V18H6.5zM7.8 5.4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM10.8 9.5h2.5v1.2c.4-.7 1.3-1.4 2.7-1.4 2.8 0 3.3 1.8 3.3 4.2V18h-2.6v-4c0-1-.1-2.2-1.4-2.2-1.4 0-1.6 1.1-1.6 2.1V18h-2.6z"/></svg>`;
+function hue(str){ let h=0; for(const c of String(str)) h=(h*31+c.charCodeAt(0))%360; return h; }
+const avatar = (name,big) => `<span class="avatar${big?" big":""}" style="--h:${hue(name)}" aria-hidden="true">${esc((String(name).trim()[0]||"?").toUpperCase())}</span>`;
+function authOf(j){
+  const h = j.auth || detectAuth(j.posting);
+  const ai = (details[j.id]||(j.d||{})).work_auth;
+  const a = {...h};
+  if(ai){ ["cpt","opt","h1b"].forEach(k=>{ if(a[k]==="unknown" && ai[k] && ai[k]!=="unknown") a[k]=ai[k]; }); a.citizen = h.citizen || !!ai.us_only; a.ndaa = h.ndaa || !!ai.ndaa; a.evidence = ai.evidence; }
+  if(a.citizen){ a.cpt="no"; a.opt="no"; a.h1b="no"; }
+  return a;
+}
+const needs = () => ["cpt","opt","h1b"].filter(k=>WA[k]);
+function rulesOut(a){ return a.citizen || a.ndaa || needs().some(k=>a[k]==="no"); }
+function badgesHTML(a){
+  const shown = needs().length ? needs() : [];
+  let h = shown.map(k=>{ const v=a[k]; const cls=v==="yes"?"yes":v==="no"?"no":"unk"; const i=v==="yes"?"check":v==="no"?"x":"q";
+    const t=v==="yes"?"accepted":v==="no"?"ruled out":"not stated";
+    return `<span class="b ${cls}" title="${WA_LABEL[k]}: ${t}">${ic(i)}${WA_LABEL[k]}</span>`; }).join("");
+  if(a.citizen) h += `<span class="b us" title="Requires U.S. citizenship, U.S. person status or a clearance">US only</span>`;
+  if(a.ndaa) h += `<span class="ndaa sm" title="NDAA: restricts citizens of China, Iran, Russia or North Korea">NDAA</span>`;
+  return h ? `<div class="badges">${h}</div>` : "";
+}
 const firstName = () => PROFILE.first || PROFILE.name.split(" ")[0];
 const chatMsg = h => `Hi [Name], I'm ${firstName()}, a robotics master's student at Penn (MEAM, graduating May 2027). ${h} Would you have 15 minutes for a quick call in the next couple of weeks?\n\nThanks,\n${firstName()}`;
 
@@ -347,7 +451,7 @@ $("#searchBtn").onclick=async()=>{
   if(!companies.length){ toggleSettings(true); toast("Add at least one company first"); return; }
   b.disabled=true; b.textContent="Searching career pages…";
   try{
-    const u=`api/search?companies=${encodeURIComponent(companies.join(","))}&keywords=${encodeURIComponent(keywords.join(","))}&limit=10`;
+    const u=`api/search?companies=${encodeURIComponent(companies.join(","))}&keywords=${encodeURIComponent(keywords.join(","))}&limit=10&needs=${needs().join(",")}&hide=${WA.hide?1:0}`;
     const r=await fetch(u); const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status);
     addToToday(d.jobs||[]);
     const bad=(d.boards||[]).filter(x=>x.error).map(x=>x.company);
@@ -372,12 +476,19 @@ function renderList(){
     <div class="dayhead"><b>${esc(dayLabel(r.date))}</b><span class="label">${r.jobs.length} job${r.jobs.length>1?"s":""}</span></div>
     ${r.jobs.map(j=>{
       const s=status[j.id]; const pill = s==="applied"?`<span class="pill applied">Applied</span>`: s==="skipped"?`<span class="pill skipped">Skipped</span>`:`<span class="pill">New</span>`;
+      const a=authOf(j);
+      if(WA.hide && rulesOut(a) && selected!==j.id) return "";
       return `<div class="job ${selected===j.id?"on":""}" tabindex="0" role="button" data-id="${esc(j.id)}">
-        <span class="role">${esc(j.role)}</span>${pill}
-        <span class="meta">${esc(j.company)}${j.place?" · "+esc(shortPlace(j.place)):""}</span>
-        ${isReal(j)?`<a class="lnk" href="${esc(j.url)}" target="_blank" rel="noopener">View posting ↗</a>`:`<span class="lnk" style="text-decoration:none">${j.sample?"Sample posting":"Pasted posting"}</span>`}
+        ${avatar(j.company)}
+        <div class="jmain">
+          <span class="role">${esc(j.role)}</span>
+          <span class="meta"><span>${ic("building")}${esc(j.company)}</span>${j.place?`<span>${ic("pin")}${esc(shortPlace(j.place))}</span>`:""}</span>
+          ${badgesHTML(a)}
+          ${isReal(j)?`<a class="lnk" href="${esc(j.url)}" target="_blank" rel="noopener">${ic("ext")}View posting</a>`:`<span class="lnk">${ic("doc")}${j.sample?"Sample posting":"Pasted posting"}</span>`}
+        </div>
+        ${pill}
       </div>`; }).join("")}
-  </section>`).join("");
+  </section>`).join("") + `<div class="legend"><span><span class="b yes">${ic("check")}OK</span>accepted</span><span><span class="b no">${ic("x")}No</span>ruled out</span><span><span class="b unk">${ic("q")}?</span>not stated</span><span><span class="ndaa sm">NDAA</span>NDAA countries restricted</span></div>`;
   L.querySelectorAll(".job").forEach(el=>{
     const go=()=>{ selected=el.dataset.id; store("sel",selected); renderAll(); if(innerWidth<860) $("#detail").scrollIntoView({behavior:"smooth"}); };
     el.onclick=e=>{ if(e.target.closest("a")) return; go(); };
@@ -397,7 +508,7 @@ async function getDetail(j, force){
       body:JSON.stringify({job:{company:j.company,role:j.role,place:j.place,posting:j.posting},profile:PROFILE})});
     const d=await r.json(); if(!r.ok||!d.cover_letter) throw new Error(d.error||"no cover letter returned");
     if(j.pasted){ if(d.company) j.company=d.company; if(d.role) j.role=d.role; if(d.place) j.place=d.place; store("runs",runs); }
-    details[j.id]=d; store("details",details); return d;
+    details[j.id]=d; store("details",details); renderList(); return d;
   })();
   try{ return await pending[j.id]; } finally{ delete pending[j.id]; }
 }
@@ -405,31 +516,46 @@ async function renderDetail(force){
   const D=$("#detail");
   const j=selected&&findJob(selected);
   if(!j){ D.innerHTML=`<h1>Pick a job on the left</h1><p class="muted" style="margin:0">You'll see a cover letter written from that job description, the people worth contacting, and the choice to apply.</p>`; return; }
-  const head=`<div style="display:flex;flex-direction:column;gap:8px"><h1>${esc(j.role)}</h1>
-    <div class="sub"><span>${esc(j.company)}${j.place?" · "+esc(shortPlace(j.place)):""}</span>${isReal(j)?`<a class="btn small" href="${esc(j.url)}" target="_blank" rel="noopener">Open posting ↗</a>`:""}</div></div>`;
+  const head=`<div style="display:flex;gap:14px;align-items:flex-start">${avatar(j.company,true)}<div style="display:flex;flex-direction:column;gap:8px;min-width:0"><h1>${esc(j.role)}</h1>
+    <div class="sub"><span style="display:inline-flex;gap:4px;align-items:center">${ic("building")}${esc(j.company)}</span>${j.place?`<span style="display:inline-flex;gap:4px;align-items:center">${ic("pin")}${esc(shortPlace(j.place))}</span>`:""}${isReal(j)?`<a class="btn small" href="${esc(j.url)}" target="_blank" rel="noopener">${ic("ext")}Open posting</a>`:""}</div></div></div>`;
   D.innerHTML=head+`<div class="sec"><div class="label">Writing a cover letter from this job description…</div><div class="skel" style="width:90%"></div><div class="skel" style="width:75%"></div><div class="skel" style="width:82%"></div></div>`;
   let d;
   try{ d=await getDetail(j, force); }
   catch(e){ if(selected!==j.id) return; D.innerHTML=head+`<div class="warn">The AI didn't answer (${esc(e.message)}). <button class="btn small" id="retry">Try again</button></div>`; $("#retry").onclick=()=>renderDetail(true); return; }
   if(selected!==j.id) return;
-  if(!d){ D.innerHTML=head+`<div class="warn">Live AI isn't connected on this page. Deploy with your API key to write cover letters for real postings.</div>`+jdHTML(j); return; }
+  if(!d){ D.innerHTML=head+authHTML(j)+`<div class="warn">Live AI isn't connected on this page. Deploy with your API key to write cover letters for real postings.</div>`+jdHTML(j); return; }
   const s=status[j.id];
   D.innerHTML = head
-    + (d.fit!=null?`<div class="fit"><b>Fit ${esc(d.fit)}/100.</b> ${esc(d.fit_reason||"")}</div>`:"")
+    + (d.fit!=null?`<div class="fit">${ic("gauge")} <b>Fit ${esc(d.fit)}/100.</b> ${esc(d.fit_reason||"")}</div>`:"")
+    + authHTML(j)
     + decideHTML(j,d,s)
-    + `<div class="sec"><div class="sechead"><span class="label">Cover letter · written from this JD · edit freely</span>
-        <div class="row"><button class="btn small" id="copyCl">Copy</button>${live&&!j.sample?`<button class="btn small" id="regen">Rewrite</button>`:""}</div></div>
+    + `<div class="sec"><div class="sechead"><span class="label" style="display:inline-flex;gap:6px;align-items:center">${ic("doc")}Cover letter · written from this JD · edit freely</span>
+        <div class="row"><button class="btn small" id="copyCl">${ic("copy")}Copy</button>${live&&!j.sample?`<button class="btn small" id="regen">${ic("refresh")}Rewrite</button>`:""}</div></div>
         <textarea class="cl" id="cl" aria-label="Cover letter">${esc(d.cover_letter)}</textarea></div>`
     + peopleHTML(d)
     + jdHTML(j);
   wire(j,d);
+}
+function authHTML(j){
+  const a=authOf(j), bad=rulesOut(a);
+  const lines=[];
+  if(a.ndaa) lines.push("<b>NDAA:</b> this job restricts citizens of China, Iran, Russia or North Korea.");
+  if(a.citizen) lines.push("<b>US only:</b> requires U.S. citizenship, U.S. person status or a security clearance.");
+  ["cpt","opt","h1b"].forEach(k=>{ const v=a[k]; const t= k==="h1b" ? (v==="yes"?"they say they sponsor.":v==="no"?"they won't sponsor.":"the JD doesn't say.") : (v==="yes"?"accepted.":v==="no"?"ruled out.":"the JD doesn't say.");
+    if(WA[k] || v!=="unknown") lines.push(`<b>${WA_LABEL[k]}${k==="h1b"?" sponsorship":""}:</b> ${t}`); });
+  const all=["cpt","opt","h1b"].map(k=>{ const v=a[k]; return `<span class="b ${v==="yes"?"yes":v==="no"?"no":"unk"}">${ic(v==="yes"?"check":v==="no"?"x":"q")}${WA_LABEL[k]}</span>`; }).join("")
+    + (a.citizen?`<span class="b us">US only</span>`:"") + (a.ndaa?`<span class="ndaa">NDAA</span>`:"");
+  return `<div class="auth${bad?" bad":""}"><div class="authhead">${ic("shield")}Work authorization${bad?" · this job rules you out":""}</div>
+    <div class="badges">${all}</div>
+    <ul>${lines.map(l=>`<li>${l}</li>`).join("")}</ul>
+    ${a.evidence?`<div class="quote">From the JD: “${esc(a.evidence)}”</div>`:""}</div>`;
 }
 function decideHTML(j,d,s){
   const hold = d.hold_question ? `<div class="warn">The application may ask: <b>${esc(d.hold_question)}</b> Night Shift never answers this for you.</div>` : "";
   if(s==="applied") return `<div class="kit"><b>Applied.</b> You marked this as submitted.<div class="row"><button class="btn small" id="undo">Undo</button></div></div>`;
   if(s==="skipped") return `<div class="decide"><span class="q">You chose not to apply.</span><button class="btn small" id="undo">Undo</button></div>`;
   if(s==="applying") return hold+kitHTML(j);
-  return hold+`<div class="decide"><span class="q">Apply to this job?</span><button class="btn ok" id="yes">Yes, apply</button><button class="btn" id="no">Not this one</button></div>`;
+  return hold+`<div class="decide"><span class="q">Apply to this job?</span><button class="btn ok" id="yes">${ic("check")}Yes, apply</button><button class="btn" id="no">${ic("x")}Not this one</button></div>`;
 }
 function kitHTML(j){
   return `<div class="kit"><b>Apply in three steps</b>
@@ -442,14 +568,15 @@ function kitHTML(j){
 }
 function peopleHTML(d){
   const P=d.people||[]; if(!P.length) return "";
-  return `<div class="sec"><span class="label">LinkedIn network · ${P.length} people worth a coffee chat</span><div class="people">${P.map((p,k)=>`
+  const tIcon=t=>/alum/i.test(t)?"cap":/recruit/i.test(t)?"brief":/engineer/i.test(t)?"wrench":/research/i.test(t)?"flask":"user";
+  return `<div class="sec"><span class="label" style="display:inline-flex;gap:6px;align-items:center">${LI}LinkedIn network · ${P.length} people worth a coffee chat</span><div class="people">${P.map((p,k)=>`
     <div class="person">
-      <span class="tagline">${esc(p.type||"Contact")}</span>
+      <span class="ptype"><i>${ic(tIcon(p.type||""))}</i><span class="tagline">${esc(p.type||"Contact")}</span></span>
       <b>${esc(p.who)}</b>
       <span>${esc(p.does)}</span>
       <span class="why">Why: ${esc(p.why)}</span>
-      <div class="row"><a class="btn small" href="${li(p.q||p.who)}" target="_blank" rel="noopener">Find them on LinkedIn ↗</a></div>
-      <details><summary>Coffee chat message</summary><pre id="m${k}">${esc(chatMsg(p.hook||""))}</pre><button class="btn small" data-copy="m${k}">Copy message</button></details>
+      <div class="row"><a class="btn small" href="${li(p.q||p.who)}" target="_blank" rel="noopener">${LI}Find them on LinkedIn</a></div>
+      <details><summary style="display:inline-flex;gap:5px;align-items:center">${ic("chat")}Coffee chat message</summary><pre id="m${k}">${esc(chatMsg(p.hook||""))}</pre><button class="btn small" data-copy="m${k}">${ic("copy")}Copy message</button></details>
     </div>`).join("")}</div></div>`;
 }
 function jdHTML(j){ return `<details class="sec"><summary class="label" style="cursor:pointer">Job description</summary><p class="jd">${esc(j.posting||"No description")}</p></details>`; }
@@ -506,6 +633,8 @@ async function boot(){
   const p=load("profile"); if(p&&p.name) PROFILE=p;
   const co=load("co"); if(co&&co.length) companies=co;
   const kw=load("kw"); if(kw&&kw.length) keywords=kw;
+  const wa=load("wa"); if(wa) WA={...WA,...wa};
+  [["waCPT","cpt"],["waOPT","opt"],["waH1B","h1b"],["waHide","hide"]].forEach(([id,k])=>{ const el=$("#"+id); el.checked=!!WA[k]; el.onchange=()=>{ WA[k]=el.checked; store("wa",WA); renderAll(); }; });
   renderProfile(); renderChips();
   try{ const r=await fetch("api/agent"); const j=await r.json(); live=!!j.ok; }catch(e){ live=false; }
   if(live){
